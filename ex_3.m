@@ -29,7 +29,6 @@ SNRdB                   = (-5:2:30).';           % Es/N0 [dB]
 SNR                     = 10.^(SNRdB/10);
 
 
-
 block_size           = 2^12;
 N_blocks             = sig.N_simboli/block_size;
 
@@ -66,7 +65,7 @@ for k = 1:length(SNRdB)
     %% modulazione + rumore awgn + filtro matchato
     % Modulazione lineare dell'impulso base con rrc roll-off alpha
     u_tx                   = linpulses(c_tx.',sig.Nxs,sig.filt_tx);
-    % rumore gaussiona
+    % rumore gaussiono
     z                      = sg*(randn(1,length(u_tx))+1i*randn(1,length(u_tx)));
     u                      = u_tx + z;
     % Filtro WSS

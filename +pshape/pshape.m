@@ -160,8 +160,7 @@ classdef pshape < handle
             X          = real(pammod((0:sqrt(m)-1),sqrt(m)));
             Y          = real(pammod((0:sqrt(m)-1),sqrt(m)));
             MQAM_stars = norm*(X+1i*Y.');
-            p          = arrayfun(@(x)length(find(simbols==x)),MQAM_stars)/length(simbols);
-            
+            p          = arrayfun(@(x)length(find(simbols==x)),MQAM_stars)/length(simbols);            
         end
         
     end

@@ -19,15 +19,16 @@ classdef capacity_functions
     
     methods(Static)
         
-        function Es = symbol_energy(C,Pk)
+        function Es  = symbol_energy(C,Pk)
             %SYMBOL_ENERGY return the average symbol energy
             %   ES = SYMBOL_ENERGY(C,PK) return the average symbol energy
             %   of the vector C given the vector of the probabilities Pk
+           
+            Es    = sum(Pk.*vecnorm(C,2,2).^2);
             
-            Es = sum(Pk.*abs(C).^2);
         end
         
-        function b0 = get_mqamsymbs_zero_kth_bit(k,M)
+        function b0  = get_mqamsymbs_zero_kth_bit(k,M)
             %GET_MQAMSYMBS_ZERO_KTH_BIT inserts a binary zero inside a
             %positive binary number at a given position.
             %   B0 = GET_MQAMSYMBS_ZERO_KTH_BIT(K,M) return a vector of
@@ -38,6 +39,47 @@ classdef capacity_functions
             b0 = de2bi((0:2^(m-1)-1),m,'left-msb');
             b0(:,[1,k]) = b0(:,[k,1]);
             b0 = bi2de(b0,'left-msb');
+        end
+        
+        function idx = get_index_kth_bit(k,M,C,b)
+            [n,d] = size(C);
+            
+            m   = M^(1/d);
+            B   = [];
+            idx = [];
+            
+            for  i = 1:d
+                B    = [B,reshape(qamdemod(C(:,i).',m,'OutputType','bit','UnitAveragePower',true).',[],log2(m))];
+            end
+            
+            idx  = find(B(:,k)==b);
+        
+        end
+        
+        function mi  = pam_mi(C,M,sg,Pk)
+            %QAM_GMI evaluates the Mutual information (MI) for M-QAM
+            %using Gauss-Hermite quadrature and assuming an AWGN channel.
+            %   MI = QAM_MI(C,M,SG,PK) evaluates the mi for a M-QAM
+            %   constallation points C whit propabilities Pk assuming a
+            %   noise deviation of SG.
+            
+            import capacity.*;
+            
+            xi  = capacity_functions.xi;
+            w   = capacity_functions.w;
+            
+            mi = 0.0;
+            sg2 = sg^2;
+            %  Cycle through constellation points
+            for i = 1:M
+                dij   = (C-C(i)).';
+                for l=1:length(xi)                    
+                    tmp = sum(exp((-dij.^2 - sqrt(8)*sg.*xi(l).*dij)/(2*sg2)).*Pk.',2);
+                    mi  = mi - w(l)*log2(tmp)*Pk(i);
+                end
+            end
+            
+            mi = mi/sqrt(pi);
         end
         
         function mi  = qam_mi(C,M,sg,Pk)
@@ -89,32 +131,30 @@ classdef capacity_functions
             mi = mi/D;
         end
         
-        function mi  = pam_mi(C,M,sg,Pk)
-            %QAM_GMI evaluates the Mutual information (MI) for M-QAM
-            %using Gauss-Hermite quadrature and assuming an AWGN channel.
-            %   MI = QAM_MI(C,M,SG,PK) evaluates the mi for a M-QAM
-            %   constallation points C whit propabilities Pk assuming a
-            %   noise deviation of SG.
+        function mi  = md_mi_montecarlo(z,C,M,sg,Pk)
             
-            import capacity.*;
             
-            xi  = capacity_functions.xi;
-            w   = capacity_functions.w;
+            mi    = 0.0;
+            sg2   = sg^2;
+            D     = length(z);
             
-            mi = 0.0;
-            sg2 = sg^2;
+            [n,m] = size(C); 
+            
+            if isreal(C)
+                m=m/2;
+            end
+                        
             %  Cycle through constellation points
             for i = 1:M
-                dij   = (C-C(i)).';
-                for l=1:length(xi)                    
-                    tmp = sum(exp((-dij.^2 - sqrt(8)*sg.*xi(l).*dij)/(2*sg2)).*Pk.',2);
-                    mi  = mi - w(l)*log2(tmp)*Pk(i);
-                end
+                dij   = (C(i,:) - C);            
+                tmp = sum(exp((-vecnorm(dij,2,2).^2 - 2*real(z*dij.').')/(sg2/m)).*Pk,1);
+                mi  = mi - sum(log2(tmp)*Pk(i));
             end
             
-            mi = mi/sqrt(pi);
-        end
-        
+            mi = mi/D;
+                 
+        end    
+                
         function gmi = pam_gmi(C,M,sg,Pk)
             %PAM_GMI evaluates the BICM Mutual information (GMI) for PAM
             %using Gauss-Hermite quadrature and assuming an AWGN channel.
@@ -162,8 +202,7 @@ classdef capacity_functions
             gmi = gmi + sum(Pbk(1,:).*log2(Pbk(1,:)));
             gmi = gmi + sum(Pbk(2,:).*log2(Pbk(2,:)));
         end
-        
-        
+            
         function gmi = qam_gmi(C,M,sg,Pk)
             %QAM_GMI evaluates the BICM Mutual information (GMI) for QAM
             %using Gauss-Hermite quadrature and assuming an AWGN channel.
@@ -223,10 +262,12 @@ classdef capacity_functions
             
             import capacity.*;
             
-            gmi = 0.0;
-            m   = log2(M);
-            sg2 = sg^2;
-            D   = length(z);
+            [n,N] = size(C);
+            
+            gmi   = 0.0;
+            m     = log2(M);
+            sg2   = sg^2;
+            D     = length(z);
             %  Cycle through constellation bit
             for k = 1:m
                 % Cycle through binary values
@@ -256,6 +297,68 @@ classdef capacity_functions
             gmi = gmi + sum(Pbk(2,:).*log2(Pbk(2,:)));
             
         end
+        
+        function gmi = md_gmi_montecarlo(z,C,M,sg,Pk,varargin)
+            
+            import capacity.*;
+            
+            [n,N] = size(C);
+            
+            if isempty(varargin)
+                get_idx_kth_bit = @(k,m,c,b) capacity_functions.get_index_kth_bit(k,m,c,b);
+            elseif strcmp(varargin{1},'idx_fun')
+                if ne(nargin(varargin{2}),4)
+                    error('Error. \n The custom function need 4 parameters while now the parameters are %s.',num2str(nargin(varargin{2})))
+                elseif ne(nargout(varargin{2}),1)
+                    error('Error. \n The custom function can have only a single output whie now the out params are %s.',num2str(nargout(varargin{2})))
+                else    
+                    get_idx_kth_bit = varargin{2};
+                end
+            end
+            
+            if isreal(C)
+                N=N/2;
+            end
+            
+            gmi   = 0.0;
+            m     = log2(M);
+            sg2   = sg^2;
+            D     = length(z);
+            
+            %  Cycle through constellation bit
+            for k = 1:m
+                
+                % Cycle through binary values
+                for b = 0:1
+                    bi  = get_idx_kth_bit(k,M,C,b);
+                    bi  = intersect(bi,find(Pk));
+                    bj  = bi;
+                    Pbk(1+b,k) = sum(Pk(bi));
+                
+                    % Cycle through constellation points where k-th bit is
+                    % equal to b
+                    for i = 1:length(bi)
+                        
+                        dip   = (C(bi(i),:) - C(Pk~=0,:));
+                        dij   = (C(bi(i),:) - C(bj,:));
+                        tmp_num = sum(exp((-vecnorm(dip,2,2).^2-2*real(z*dip.').')/(sg2/N)).*Pk(Pk~= 0),1);
+                        tmp_den = sum(exp((-vecnorm(dij,2,2).^2-2*real(z*dij.').')/(sg2/N)).*(Pk(bj)/Pbk(1+b,k)),1);
+                        gmi   = gmi - sum(log2(tmp_num./tmp_den))/D.*Pk(bi(i));
+
+                    end
+                end
+            end
+            
+             % Add the entropy of the constellation
+            gmi = gmi - sum(Pk(Pk~= 0).*log2(Pk(Pk~= 0)));
+            
+            % Remove the entropy of each bit
+            gmi = gmi + sum(Pbk(1,:).*log2(Pbk(1,:)));
+            gmi = gmi + sum(Pbk(2,:).*log2(Pbk(2,:)));
+         
+
+        end
+        
     end
 end
 

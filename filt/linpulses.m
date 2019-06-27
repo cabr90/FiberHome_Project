@@ -19,7 +19,7 @@ function y = linpulses(a,Nxs,pls)
 
 T          = 1;
 dt         = T/Nxs;
-Na         = length(a);
+[m,Na]     = size(a);
 df         = 1/(T*Na);
 N          = Na*Nxs;
 N1         = floor(N/2);
@@ -37,16 +37,16 @@ H    = H*norm;
 
 %sequenza di impulsi di tipo delta (con Nxs campioni per simbolo) modulati
 %secondo i simboli dati
-y            = complex(zeros(1,N));
+y            = complex(zeros(m,N));
 y(:,1:Nxs:N) = a;
 
 %shaping spettrale secondo l'impulso desiderato
-Y       = fft(y);
+Y       = fft(y,[],2);
 Y       = Y.*H;
-y       = ifft(Y);
+y       = ifft(Y,[],2);
 
-H_match = conj(H);
-u       =  ifft(fft(y).*H_match);
-y_rx    =  u(:,1:Nxs:end);
+% H_match = conj(H);
+% u       =  ifft(fft(y,[],2).*H_match);
+% y_rx    =  u(:,1:Nxs:end);
 
 end
