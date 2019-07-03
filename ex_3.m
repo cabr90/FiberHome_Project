@@ -6,7 +6,7 @@ import pshape.*;
 import pshape.dm.*;
 
 
-lqam                    = [4];
+lqam                    = [8];
 Nxs                     = [4];
 
 
@@ -32,7 +32,7 @@ SNR                     = 10.^(SNRdB/10);
 block_size           = 2^12;
 N_blocks             = sig.N_simboli/block_size;
 
-rate = 2.8;            % rate of the modulation 
+rate = 6.5;            % rate of the modulation 
 N    = block_size;     % block size
 M    = sig.QAM_order;  % modulation order
 dm   = 'ccdm';         % distribution matcher type (only ccdm now)
@@ -48,13 +48,13 @@ for k = 1:length(SNRdB)
     
     for i = 1:N_blocks
         % Probabilistic Shaping encoding
-        [c_tx_tmp,bits_tx_tmp,px]  = ps.encoding;
+        [c_tx_tmp,bits_tx_tmp,px]  = ps.encoding('UnitAveragePower',false);
         c_tx                    = [c_tx;c_tx_tmp];
         bits_tx                 = [bits_tx;bits_tx_tmp];
     end
     
-    stars                  = qammod((0:sig.QAM_order-1)',sig.QAM_order,'UnitAveragePower',true,'PlotConstellation',false);
-    p_qam                  = P_QAM(c_tx,sig.QAM_order);
+    stars                  = qammod((0:sig.QAM_order-1)',sig.QAM_order,'UnitAveragePower',false,'PlotConstellation',false);
+    p_qam                  = P_QAM(c_tx,sig.QAM_order,'UnitAveragePower',false);
     
 %     c_tx                   = qammod(randi([0 sig.QAM_order-1],sig.N_simboli,1),sig.QAM_order,'UnitAveragePower',true,'PlotConstellation',false);
 %     p_qam                  = ones(sig.QAM_order,1)*1/sig.QAM_order;

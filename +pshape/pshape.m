@@ -63,16 +63,23 @@ classdef pshape < handle
             % ENCODING generates a qam sequence of length N encoded with
             % the dm initialized at the constructor of the class
             norm = 1/sqrt(2/3*(ps.M-1));
+            if not(isempty(varargin)) && (length(varargin) == 2 || length(varargin) == 6) && strcmp(varargin{1},'UnitAveragePower') && not(varargin{2})
+                norm = norm * varargin{2}+1;
+            end
             
-            if isempty(varargin)
+            
+            if isempty(varargin) || length(varargin) == 2 
                 % Generate bits
                 bits_real      = randi([0 1], [ps.dm.k 1]);     % bits for DM for the real part of the amplitude of the MQAM symbol
                 bits_imag      = randi([0 1], [ps.dm.k 1]);     % bits for DM for the imaginary part of the amplitude of the MQAM symbol
-            elseif not(length(varargin) == 4)
+            elseif not(length(varargin) == 4 || length(varargin) == 6)
                 error('if you want to pass the bits to encode the right way is: ps.encoding(bits_real,[array_bits],bits_imag,[array_bits]) ')
-            elseif strcmp(varargin{1},'bits_real') && strcmp(varargin{3},'bits_imag')
+            elseif length(varargin) == 4 && strcmp(varargin{1},'bits_real') && strcmp(varargin{3},'bits_imag')
                 bits_real      = varargin{2};                   % bits for DM for the real part of the amplitude of the MQAM symbol
                 bits_imag      = varargin{4};                   % bits for DM for the imaginary part of the amplitude of the MQAM symbol
+            elseif length(varargin) == 6 && strcmp(varargin{3},'bits_real') && strcmp(varargin{5},'bits_imag')
+                bits_real      = varargin{4};                   % bits for DM for the real part of the amplitude of the MQAM symbol
+                bits_imag      = varargin{6};                   % bits for DM for the imaginary part of the amplitude of the MQAM symbol
             else
                 error('args are: ps.encoding(bits_real,[array_bits],bits_imag,[array_bits])')
             end
@@ -91,16 +98,18 @@ classdef pshape < handle
             % Generate bit and symbols
             bits     = [bits_sign_real;bits_sign_imag;bits_real;bits_imag];
             symb     = norm*(ps.beta(bits_sign_real).*(amplitudes_real)+1j*ps.beta(bits_sign_imag).*(amplitudes_imag));
-            
             pqam     = ps.get_prob(symb);
             
         end
         
-        function [bits]           = decoding(ps,symbols)
+        function [bits]           = decoding(ps,symbols,varargin)
             % DECODING decode the sequence in SYMBOLS using the dm
             % initialized at the class constructor
+            norm        = 1/sqrt(2/3*(ps.M-1));
+            if not(isempty(varargin)) && length(varargin) == 2 && strcmp(varargin{1},'UnitAveragePower') && not(varargin{2})
+                norm = norm * varargin{2}+1;
+            end
             
-            norm = 1/sqrt(2/3*(ps.M-1));
             symbols     = symbols./norm;
             
             symbol_real = real(symbols);

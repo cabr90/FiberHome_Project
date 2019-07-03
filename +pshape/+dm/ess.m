@@ -250,7 +250,7 @@ classdef ess < handle
                 intvec(kk) = int64(bi2de(fliplr(b(max(1,k-(S_bits-kk+1)*elle+1):numel(b)))));
                 b(max(1,k-(S_bits-kk+1)*elle+1):numel(b))=[];
             end
-            if numel(b)>1
+            if numel(b)>0
                 intvec(1) = int64(bi2de(fliplr(b)));
             end
         end

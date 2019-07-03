@@ -3,7 +3,7 @@ clear all;
 addpath filt;
 import capacity.*;
 
-lqam                    = [2];
+lqam                    = [4];
 
 
 sig.Rs                  = 40e9;                  % symbol rate
@@ -20,7 +20,7 @@ wss.filt_wss.B          = 50e9;
 wss.filt_wss.rate       = sig.Rs;
 wss.N_wss               = 40;
 
-SNRdB                   = (-5:2:30).';           % Es/N0 [dB]
+SNRdB                   = (20:2:30).';           % Es/N0 [dB]
 SNR                     = 10.^(SNRdB/10);
 
 for k = 1:length(SNRdB)

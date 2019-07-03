@@ -1,4 +1,4 @@
-function[p]=P_QAM(X,M)
+function[p]=P_QAM(X,M,varargin)
 % INPUT: 
 %   X_string string of symbols
 %   M order of M QAM constellation
@@ -7,9 +7,12 @@ function[p]=P_QAM(X,M)
 %   p: probabilities of X
 
 [n,d] = size(X);
-
+norm  = true;
 % Generate the M QAM constellation 
-MQAM_stars = qammod((0:M-1).'.*ones(M,d),M,'UnitAveragePower',true,'PlotConstellation',false);
+if not(isempty(varargin)) && strcmp(varargin{1},'UnitAveragePower')
+    norm = varargin{2};
+end
+MQAM_stars = qammod((0:M-1).'.*ones(M,d),M,'UnitAveragePower',norm,'PlotConstellation',false);
 
 if d>1
     Ctmp = [];
